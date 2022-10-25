@@ -1,58 +1,47 @@
-import React from 'react';
-import logo from './logo.svg';
-import { Counter } from './features/counter/Counter';
-import './App.css';
+import { useContext, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
+
+import styles from './App.module.css'
+import { addOrder, setOrders } from './features/book/bookSlice'
+import { BookOverallTable } from './features/book/BookOverallTable'
+import { SocketContext } from './socket'
 
 function App() {
+  const dispatch = useDispatch()
+  const { connect, disconnect } = useContext(SocketContext)
+
+  useEffect(() => {
+    connect({
+      onMessage: (json) => {
+        if (json[1]) {
+          if (json[1][0] instanceof Array) {
+            dispatch(
+              setOrders(
+                json[1].map((orderArray) => ({
+                  price: orderArray[0],
+                  count: orderArray[1],
+                  amount: orderArray[2],
+                }))
+              )
+            )
+          } else {
+            const [price, count, amount] = json[1]
+            dispatch(addOrder({ price, count, amount }))
+          }
+        }
+      },
+    })
+
+    return () => {
+      disconnect()
+    }
+  }, [dispatch, connect, disconnect])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <Counter />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <span>
-          <span>Learn </span>
-          <a
-            className="App-link"
-            href="https://reactjs.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux-toolkit.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux Toolkit
-          </a>
-          ,<span> and </span>
-          <a
-            className="App-link"
-            href="https://react-redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React Redux
-          </a>
-        </span>
-      </header>
+    <div className={styles.container}>
+      <BookOverallTable />
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
